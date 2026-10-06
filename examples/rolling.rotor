@@ -1,0 +1,16 @@
+> ROLLING CUBES
+>> the first ROTOR spine, conformed from the original MIVIM.artist note
+
+"ROLLING_CUBES":=       [. @120ms
+"ROLLING_SQUARED_NODE":= | =>
+                         | -> "◰",
+                         | -> "◱",
+                         | -> "◲",
+                         |<- "◳"
+                         | |
+"ROLLING_SHADOW_NODE":=  | =>
+                         | -> "❏",
+                         | -> "❐",
+                         | -> "❑",
+                         |<- "⧠"
+                        ]<=

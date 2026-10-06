@@ -1,0 +1,51 @@
+{
+  "name": "rotor-notation",
+  "displayName": "ROTOR notation",
+  "description": "Syntax highlighting for MIVIM.artist ROTOR bar-spine animation files (.rotor)",
+  "version": "1.1.0",
+  "publisher": "mivim",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "rotor",
+        "aliases": [
+          "ROTOR",
+          "rotor"
+        ],
+        "extensions": [
+          ".rotor"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "rotor",
+        "scopeName": "source.rotor",
+        "path": "./syntaxes/rotor.tmLanguage.json"
+      }
+    ],
+    "configurationDefaults": {
+      "[rotor]": {
+        "editor.insertSpaces": true,
+        "editor.tabSize": 4,
+        "editor.detectIndentation": false,
+        "editor.renderWhitespace": "boundary",
+        "editor.fontLigatures": false
+      }
+    }
+  },
+  "scripts": {
+    "test": "node test/tokenize.cjs"
+  },
+  "devDependencies": {
+    "vscode-oniguruma": "^2.0.1",
+    "vscode-textmate": "^9.2.0"
+  }
+}

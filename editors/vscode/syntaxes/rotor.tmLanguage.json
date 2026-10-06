@@ -1,0 +1,194 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "ROTOR",
+  "scopeName": "source.rotor",
+  "patterns": [
+    {
+      "include": "#header"
+    },
+    {
+      "include": "#state-decl"
+    },
+    {
+      "include": "#name-decl"
+    },
+    {
+      "include": "#string"
+    },
+    {
+      "include": "#comment"
+    },
+    {
+      "include": "#spine-glyphs"
+    },
+    {
+      "include": "#label"
+    },
+    {
+      "include": "#reference"
+    },
+    {
+      "include": "#modifiers"
+    }
+  ],
+  "repository": {
+    "header": {
+      "patterns": [
+        {
+          "name": "markup.heading.subtitle.rotor",
+          "match": "^\\s*>>.*$"
+        },
+        {
+          "name": "markup.heading.title.rotor",
+          "match": "^\\s*>(?!>).*$"
+        }
+      ]
+    },
+    "comment": {
+      "name": "comment.line.double-slash.rotor",
+      "match": "//.*$"
+    },
+    "string": {
+      "name": "string.quoted.double.glyph.rotor",
+      "begin": "\"",
+      "end": "\"",
+      "patterns": [
+        {
+          "name": "constant.character.escape.rotor",
+          "match": "\\\\."
+        }
+      ]
+    },
+    "name-decl": {
+      "match": "^(\")([^\"]+)(\")\\s*(:=)",
+      "captures": {
+        "1": {
+          "name": "punctuation.definition.name.rotor"
+        },
+        "2": {
+          "name": "entity.name.rotor"
+        },
+        "3": {
+          "name": "punctuation.definition.name.rotor"
+        },
+        "4": {
+          "name": "keyword.operator.walrus.rotor"
+        }
+      }
+    },
+    "state-decl": {
+      "match": "^(![A-Za-z_]\\w*)\\s*(:=)((?:\\s+(?:#[0-9A-Fa-f]{6}|bold|faint|italic|underline|blink|fill))*)",
+      "captures": {
+        "1": {
+          "name": "entity.name.type.state.rotor"
+        },
+        "2": {
+          "name": "keyword.operator.walrus.rotor"
+        },
+        "3": {
+          "name": "constant.other.color.rotor"
+        }
+      }
+    },
+    "spine-glyphs": {
+      "patterns": [
+        {
+          "name": "keyword.control.root.rotor",
+          "match": "\\[\\."
+        },
+        {
+          "name": "keyword.control.close.rotor",
+          "match": "\\](?:<=)?"
+        },
+        {
+          "name": "keyword.control.break.parallel.rotor",
+          "match": "\\|\\+\\|"
+        },
+        {
+          "name": "keyword.control.break.rotor",
+          "match": "\\|\\s+\\|(?=\\s*(?://|$))"
+        },
+        {
+          "match": "(\\|)\\s*(=>)",
+          "captures": {
+            "1": {
+              "name": "punctuation.bar.rotor"
+            },
+            "2": {
+              "name": "keyword.operator.parent.rotor"
+            }
+          }
+        },
+        {
+          "match": "(\\|)\\s*(->)",
+          "captures": {
+            "1": {
+              "name": "punctuation.bar.rotor"
+            },
+            "2": {
+              "name": "keyword.operator.child.rotor"
+            }
+          }
+        },
+        {
+          "match": "(\\|)(<-)",
+          "captures": {
+            "1": {
+              "name": "punctuation.bar.rotor"
+            },
+            "2": {
+              "name": "keyword.control.end.rotor"
+            }
+          }
+        },
+        {
+          "match": "(\\|)(<=)",
+          "captures": {
+            "1": {
+              "name": "punctuation.bar.rotor"
+            },
+            "2": {
+              "name": "keyword.control.return.rotor"
+            }
+          }
+        },
+        {
+          "name": "punctuation.bar.rotor",
+          "match": "\\|"
+        }
+      ]
+    },
+    "label": {
+      "name": "entity.name.tag.label.rotor",
+      "match": "\\b[A-Za-z_]\\w*:(?!=)"
+    },
+    "reference": {
+      "name": "variable.other.reference.rotor",
+      "match": "&!?[A-Za-z_][\\w.]*"
+    },
+    "modifiers": {
+      "patterns": [
+        {
+          "name": "constant.numeric.repeat.rotor",
+          "match": "\\*\\d+"
+        },
+        {
+          "name": "constant.numeric.chance.rotor",
+          "match": "\\?\\d+(?:\\.\\d+)?%"
+        },
+        {
+          "name": "constant.numeric.hold.rotor",
+          "match": "@\\d+(?:\\.\\d+)?(?:ms|s)"
+        },
+        {
+          "name": "support.type.state.rotor",
+          "match": "!(?:#[0-9A-Fa-f]{6}|[A-Za-z_]\\w*)"
+        },
+        {
+          "name": "punctuation.separator.rotor",
+          "match": ","
+        }
+      ]
+    }
+  }
+}

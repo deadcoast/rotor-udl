@@ -1,0 +1,56 @@
+> A MIVIM.artist SPEC DEVELOPMENT DESIGN
+>> VSN header: modem-light bracket flicker around a probing search node
+
+// palette
+!lit:=   #ffb347 bold
+!dim:=   #5c5346
+!probe:= #7fd6ff bold
+!ember:= #ff7a3d
+
+// glyph constants
+"VBE.LEFT":=  "⟥"
+"VBE.RIGHT":= "⟤"
+"VSN.EMPTY":= "⧮"
+"VSN.FULL":=  "⧯"
+
+// three parallel tracks; ?% gates desync the two brackets the way real status LEDs drift
+"HEADER":= [.
+"VBE_L":=   | =>
+            | -> &VBE.LEFT !dim @700ms,
+            | -> &VBE.LEFT !lit @45ms,       // the flick
+            | -> &VBE.LEFT ?60% !dim @110ms,
+            | -> &VBE.LEFT ?60% !lit @35ms,  // occasional double-flick
+            |<= &VBE.LEFT !dim @260ms
+            |+|
+"NODE":=    | =>
+            | -> &VSN.EMPTY *4 @110ms,       // idle probe
+            | -> &VSN.FULL ?40% !probe @50ms,
+            | -> &VSN.EMPTY @90ms,
+            | -> &VSN.FULL ?25% !probe @50ms,
+            |<= &VSN.EMPTY @200ms
+            |+|
+"VBE_R":=   | =>
+            | -> &VBE.RIGHT !dim @520ms,
+            | -> &VBE.RIGHT !lit @45ms,
+            | -> &VBE.RIGHT ?50% !dim @180ms,
+            | -> &VBE.RIGHT ?50% !lit @35ms,
+            |<= &VBE.RIGHT !dim @410ms
+           ]
+
+"HEADER.VIEW":= &VBE_L "[" !dim &NODE "]" !dim &VBE_R
+
+// the stage block from the original note, now a spine; labels keep its stage keys
+"CUBE_LIFE":= [. @140ms
+"MANIFEST":=   | =>
+               | -> stage_01: "⬚" !dim,          // pulsing cube fades in
+               | -> stage_02: "◻",               // outline takes shape
+               | -> stage_03: "⯀" !lit,          // full solid cube manifests
+               | -> stage_04: "⧈",               // squared square
+               | -> stage_05: "⧆" !ember @60ms,  // pop
+               | -> stage_06: "⬞",               // dissipates to a smaller cube
+               | -> stage_07: "⬝" !dim,          // rolls empty, populated, empty
+               |<- stage_08: "⬞" @400ms          // stop flag
+              ]<=
+
+// a status line composed from a live spine and a single frame pulled by label
+"STATUS.VIEW":= &MANIFEST " sniffing " !dim &MANIFEST.stage_03

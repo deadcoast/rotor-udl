@@ -1,0 +1,162 @@
+ROTOR TODO
+----------
+> review of rotor.py v1.0.0, SPEC.txt, examples/, tests/; closed in v1.1.0
+>> every item is a defect or gap found in the source; status closes when its test lands
+
+
+DEFECTS
+-------
+
+[1]
+---
+NON-PORTABLE RANDOMNESS
+--
+- found: chance gates draw from Python's random.Random (Mersenne Twister); the spec promises seed determinism and the IR promises ports, but no TS or Rust port can reproduce a Python timeline
+- fix: ROTOR owns its generator; mulberry32 (a 32-bit seeded generator, ten lines in any language), one stream per spine seeded `seed + spine index`, one draw per chance-gated member per pass
+- status: closed in v1.1.0 by test_mulberry32_reference_vectors, test_ts_port_matches_python_timeline
+
+[2]
+---
+GLYPHS THAT CANNOT BE WRITTEN
+--
+- found: string literals are `"[^"]*"`, so `"` and `\` can never be a frame, and a comment cannot follow a string that holds an odd quote
+- fix: `\"` and `\\` escapes inside strings; split_comment, the bar-column mask and the formatter all honour them
+- status: closed in v1.1.0 by test_escapes_and_bars_inside_glyphs, test_comment_after_escaped_quote; examples/classic.rotor
+
+[3]
+---
+CASCADING DIAGNOSTICS
+--
+- found: one bad token on a root or parent line aborts opening the spine or group, so every following bar line reports E03 or E02; a single typo produced a wall of errors
+- fix: the structure opens anyway and only the bad token reports E07
+- status: closed in v1.1.0 by test_one_bad_token_reports_once
+
+[4]
+---
+PLAYER BREAKS ON SHORT TERMINALS
+--
+- found: the live screen redraws by moving the cursor up N lines; when N exceeds the terminal height the cursor cannot reach the top and the screen smears down the scrollback
+- fix: the screen clips to the terminal height, keeps the footer, and tells how many spines were cut and how to narrow with `--spine`
+- status: closed in v1.1.0 by test_clip_screen_keeps_footer; checked live in a 14-row pseudo-terminal
+
+[5]
+---
+TRUECOLOR ASSUMED
+--
+- found: every color is emitted as 24-bit; terminals without truecolor show wrong or no color
+- fix: depth detection (COLORTERM, WT_SESSION, TERM) with an xterm-256 fallback; `--color 16m|256|none` overrides
+- status: closed in v1.1.0 by test_color_depths
+
+[6]
+---
+VAGUE ALIGNMENT WARNINGS
+--
+- found: W01 says "spacing or commas off the law" for comment drift, comma drift and modifier order alike
+- fix: W01 names the exact drift: bar column, comment column, comma, modifier order, or padding
+- status: closed in v1.1.0 by test_drift_names_the_exact_problem
+
+[7]
+---
+NO REPAIR HINTS
+--
+- found: E04 on a typo'd reference leaves the author hunting
+- fix: E04 suggests the closest declared name or label
+- status: closed in v1.1.0 by test_did_you_mean
+
+[8]
+---
+TRACE NOISE
+--
+- found: `*N` repeats and parallel clocks emit rows where nothing visible changed; the HEADER trace showed five identical rows in its first half second
+- fix: trace folds rows with no visible change into the row above and prints the fold count; `--all` keeps every event
+- status: closed in v1.1.0 by test_trace_folds_invisible_events
+
+[9]
+---
+PLAYER MISLABELS ENDLESS SPINES
+--
+- found during v1.1: the player tagged HEADER "plays once" although all three of its tracks loop forever
+- fix: the tag reads `loops` for `]<=`, `runs forever` when every track holds an endless `|<=`, else `plays once`
+- status: closed in v1.1.0; checked live in the player
+
+[10]
+---
+
+--
+-
+
+
+GAPS
+----
+
+[1]
+---
+NOTATION CANNOT DRIVE A REAL SPINNER
+--
+- found: ROTOR exists to replace a spinner, yet nothing lets a program run one; play and trace only preview
+- fix: an embeddable runtime: `Player` (pure; frame at any time t, no threads, no I/O) and `Spinner` (context manager that animates one line while work runs and settles on a done or failed frame)
+- status: closed in v1.1.0 by test_player_is_pure_and_rewinds, test_player_rejects_bad_input, test_spinner_settles_done_and_failed
+
+[2]
+---
+NO ONE-COMMAND WRAPPER
+--
+- found: a shell user cannot put a ROTOR spinner in front of a long command
+- fix: `rotor spin FILE -- COMMAND ...` runs the command under the spinner, streams nothing until it ends, then settles and returns the command's exit code; `--view` and `--spine` pick what spins, `--say` sets the message
+- status: closed in v1.1.0 by test_cli_spin_returns_the_command_exit_code; checked live in a pseudo-terminal
+
+[3]
+---
+IR PROMISES A PORT THAT DOES NOT EXIST
+--
+- found: the spec says TS, Rust and Svelte ports need only the IR; none exists, so the IR contract is untested
+- fix: ports/ts/rotor.ts, zero dependencies, reads the IR and runs the same timeline; a conformance test compiles every example, runs both players over the same seed and requires identical timelines
+- status: closed in v1.1.0 by test_ts_port_matches_python_timeline
+
+[4]
+---
+ONE FILE AT A TIME
+--
+- found: fmt and check take one path; a repository of .rotor files needs a loop
+- fix: fmt and check take any number of files and folders (folders are searched for *.rotor); the report closes with a per-file tally
+- status: closed in v1.1.0 by test_cli_check_many_and_folders
+
+[5]
+---
+NOT INSTALLABLE
+--
+- found: `rotor` only runs as `python rotor.py`
+- fix: pyproject.toml with a `rotor` console command; `pip install -e .` puts it on PATH; still zero dependencies
+- status: closed in v1.1.0 by pip install into a clean venv, then `rotor --version` and `rotor check examples` from PATH
+
+[6]
+---
+NO EDITOR SUPPORT
+--
+- found: the notation is built to be read, but in an editor it is grey text
+- fix: editors/vscode, a TextMate grammar: bar glyphs, arrows, names, labels, states, holds, chances and repeats each get their own scope
+- status: closed in v1.1.0 by test_vscode_grammar_scopes (editors/vscode/test/tokenize.cjs, 20/20 scopes)
+
+[7]
+---
+
+--
+-
+
+
+DEFERRED
+--------
+
+[1]
+---
+NOT IN v1.1
+--
+- Rust port: the TS port proves the IR contract; Rust follows the same file once MIVIM needs it in a Tauri shell
+- live reload in `rotor play` when the file changes on disk
+- Svelte component wrapping ports/ts
+
+[2]
+---
+
+--
+-

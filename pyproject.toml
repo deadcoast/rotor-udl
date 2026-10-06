@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rotor-notation"
+version = "1.1.0"
+description = "ROTOR: MIVIM.artist bar-spine notation for terminal frame animation; formatter, linter, player, spinner runtime"
+requires-python = ">=3.9"
+dependencies = []
+
+[project.scripts]
+rotor = "rotor:main"
+
+[tool.setuptools]
+py-modules = ["rotor"]

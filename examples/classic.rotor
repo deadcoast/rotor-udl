@@ -1,0 +1,16 @@
+> CLASSIC
+>> the generic `/` line spinner ROTOR replaces, kept as the escape test: `|` and `\` inside glyphs
+
+"LINE":= [. @90ms
+"SPIN":=  | =>
+          | -> "|",
+          | -> "/",
+          | -> "-",
+          |<= "\\"
+         ]
+
+"QUOTED":= [. @250ms
+"BLINK":=   | =>
+            | -> "\"·\"" !dim,
+            |<= "\"•\"" !lit
+           ]

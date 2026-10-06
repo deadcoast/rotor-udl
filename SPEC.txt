@@ -1,0 +1,499 @@
+ROTOR v1.1
+----------
+> A MIVIM.artist NOTATION SPEC
+>> bar-spine notation for frame animation; rotor.py is the reference implementation, tests/ is the conformance suite
+
+
+FOUNDATIONS
+-----------
+
+[1]
+---
+FILE
+--
+- extension `.rotor`; UTF-8; LF or CRLF in, LF out of the formatter
+- a file holds header lines, declarations and spines in any order; every name resolves file-wide
+- `>` line sets the file title, `>>` line the subtitle; the player prints both
+- `//` opens a comment anywhere outside a string literal
+- blank lines separate alignment blocks (see ALIGNMENT LAW); a blank line inside an open spine warns W05
+- tabs warn W02 and count as four spaces until `rotor fmt` replaces them
+
+[2]
+---
+STRINGS
+--
+- a glyph is a double-quoted string of any length and any Unicode: `"⧯"`, `" sniffing "`
+- `\"` writes a quote and `\\` a backslash: `"\\"` is the classic spinner's last frame; every other character stands for itself
+- `|`, `[.`, `]` and `//` inside a string are text; the bar column and comments never look inside strings
+
+[3]
+---
+NAMES
+--
+- a name binds with `:=` directly after it: `"NAME":=` (quoted, canonical) or `NAME:=` (bare, accepted)
+- names take letters, digits, `_` and `.`; the dot is a namespace (VBE.LEFT, VSN.FULL), carrying no meaning to the resolver beyond the label rule in SPINES [4]
+- state names start with `!` and are written bare: `!lit:=`
+- one name, one owner: constants, views, states, spines and groups share a single namespace (E05 on collision)
+
+[4]
+---
+GLYPH TABLE
+--
+- `[.`    root: opens a spine; the `.` sits directly above the bar column
+- `|`     the bar: the spine every member hangs from
+- `]`     close: sits under `[`; carries no `.` because it tops nothing
+- `]<=`   close and loop: the whole spine restarts once every track has finished
+- `=>`    parent: opens a group; the name bound on its line is the group's name
+- `->`    child: a member, pointing outward from the bar
+- `|<-`   end: the final member; the arrow returns into the bar; stop flag, the group plays once
+- `|<=`   return: the final member; the group loops back to its first child
+- `| |`   break: closes the group; the next group plays after it on the same track
+- `|+|`   parallel break: closes the group; the next group opens a new track running alongside
+- `:=`    declaration
+- `:`     label: names a member's position inside its group (`stage_01:`)
+- `&`     reference to a declared name or a labelled member
+- `,`     separates children; `|<-` and `|<=` lines take none because nothing follows them
+
+[5]
+---
+
+--
+-
+
+
+DECLARATIONS
+------------
+
+[1]
+---
+CONSTANTS
+--
+- `"NAME":= "glyph"` binds a static string; any length, any Unicode
+- a constant may carry a state on its value: `"WARN.DOT":= "●" !hot`
+- `"ALIAS":= &OTHER` binds a name to another static value
+
+[2]
+---
+COMPOSE
+--
+- a declaration with several parts concatenates them: `"PAIR":= &VBE.LEFT "[" !dim &VSN.EMPTY "]" !dim &VBE.RIGHT`
+- a `!state` written after a part styles that part only
+- a compose built only from static parts is itself static and can feed a member
+- a compose that references a group or a spine is a VIEW (see VIEWS)
+
+[3]
+---
+STATES
+--
+- `!NAME:= #RRGGBB attr attr` declares a state: one truecolor foreground plus any of `bold faint italic underline blink fill`
+- `fill` reverses video: the glyph's cell fills with its color; this is the bracket "fill in" from the original note
+- built-ins, overridable by declaring the same name: `!lit` amber bold, `!dim` warm grey, `!off` near-black, `!fill` reverse, `!hot` red bold, `!ok` green, `!warn` yellow
+- an inline hex works anywhere a state does: `!#7fd6ff`
+- an undeclared, non-built-in state warns W06 and renders plain
+
+[4]
+---
+
+--
+-
+
+
+SPINES
+------
+
+[1]
+---
+ROOT
+--
+- `"NAME":= [.` opens a spine; the root may carry a default state and hold: `"CUBE_LIFE":= [. @140ms`
+- spines do not nest; a spine opened inside an open spine is E03
+- inside a spine, only `=>` lines bind names; a constant declared inside is E03
+
+[2]
+---
+GROUPS
+--
+- `"NAME":= | =>` opens a group; an unnamed parent is E06
+- a parent may carry `*N` (passes), `!state` and `@hold` as defaults for its members
+- every group ends on `|<-` or `|<=`; reaching a break, `]` or another `=>` without one is E01
+- a member after the end line is E09
+
+[3]
+---
+MEMBERS
+--
+- `| -> VALUE mods,` where VALUE is a `"glyph"` or a `&REF` that resolves to a static value
+- exactly one value per member (E10); an animated reference in that slot is E11
+- two identical consecutive members without `*N` warn W04; write `*2` when the double hold is intended (this caught the doubled `◲` in the original note)
+
+[4]
+---
+LABELS
+--
+- `| -> stage_03: "⯀",` names the member's position; labels are unique inside their group
+- `&GROUP.label` resolves to that member's value and state, so a view can pin one frame of a live group
+- the player and tracer print labels beside the frame; the IR carries them
+
+[5]
+---
+BREAKS
+--
+- `| |` and `|+|` stand alone on the bar column with nothing after them
+- tracks are numbered from the top, starting at 1; a track holds every group between two `|+|` breaks
+- a group after an endless `|<=` on the same track never plays: W03; cap the loop with `=> *N`
+
+[6]
+---
+CLOSE
+--
+- `]` ends the spine; a spine never closed is E03
+- `]<=` loops the whole spine; plain `]` lets every track hold its final frame
+
+[7]
+---
+
+--
+-
+
+
+MODIFIERS
+---------
+
+[1]
+---
+TABLE
+--
+- `*N`    repeat: a member shows N consecutive times; a parent plays N passes
+- `?N%`   chance: each pass, the member shows with probability N; a skipped member takes no time
+- `!name` state: color and attributes (see DECLARATIONS [3])
+- `@Nms` / `@Ns`   hold: how long the member stays on screen; minimum 1ms
+
+[2]
+---
+CASCADE
+--
+- hold: member `@` beats parent `@`, beats root `@`, beats the 100ms default
+- state: member `!` replaces every state on its value; otherwise a state already on the value (from its declaration) stands, then parent `!`, then root `!`
+
+[3]
+---
+CANONICAL ORDER
+--
+- members and parents: label, value, `*N`, `?N%`, `!state`, `@hold`
+- declarations keep their written order, since a state binds to the part before it
+- `rotor fmt` sorts into this order; meaning never changes
+
+[4]
+---
+
+--
+-
+
+
+VIEWS
+-----
+
+[1]
+---
+DEFINITION
+--
+- a view is a compose that references at least one group or spine
+- a group reference shows the current frame of that group's track, whichever group on that track is playing
+- a spine reference shows every track's frame joined by single spaces
+- static parts and `&GROUP.label` pins render as written
+- a view watches exactly one spine; reaching into two is E12
+
+[2]
+---
+AUTO VIEW
+--
+- a multi-track spine with no declared view gets one in the player: its tracks side by side
+
+[3]
+---
+
+--
+-
+
+
+PLAYBACK
+--------
+
+[1]
+---
+CLOCK
+--
+- each track runs its own clock; tracks never wait on each other
+- the spine's picture changes whenever any track changes frame
+- a finished track holds its last frame until the spine ends or restarts
+
+[2]
+---
+GROUP PASSES
+--
+- a pass plays the members top to bottom, each for its hold, `*N` times, gated by `?N%`
+- `|<-` group: one pass, or `*N` passes from its parent
+- `|<=` group: endless, or `*N` passes from its parent, then the track moves to its next group
+- a pass in which every member was skipped by chance holds the previous frame for the parent's hold, so an unlucky pass never collapses to zero time
+
+[3]
+---
+END OF SPINE
+--
+- a spine ends when its last track finishes; `]<=` restarts every track together at that moment
+- a spine whose every track ends in an endless `|<=` runs forever
+
+[4]
+---
+DETERMINISM
+--
+- the generator is mulberry32: a 32-bit state, `seed` reduced mod 2^32; each draw adds 0x6D2B79F5 to the state and mixes it to a float in [0, 1); the reference is `Mulberry32` in rotor.py and `mulberry32` in ports/ts, locked by three test vectors
+- each spine owns one stream seeded `seed + the spine's index in the file`, so narrowing to one spine with `--spine` replays the same timeline it shows in the full file
+- one draw per chance-gated member per pass, taken when the track reaches that member; tracks advance in track order at each clock instant, so draws interleave identically in every port
+- a member shows when `draw * 100 < N`
+- the same file and seed always produce the same timeline in every implementation; `--seed` picks the run
+
+[5]
+---
+
+--
+-
+
+
+ALIGNMENT LAW
+-------------
+
+[1]
+---
+BLOCKS
+--
+- a block is a run of lines with no blank line between them; a blank inside an open spine does not split it
+- every line in a block hangs off one bar column B
+
+[2]
+---
+THE BAR COLUMN
+--
+- L  = width of the longest `"NAME":=` in the block on any line except a root line
+- LR = width of the longest root `"NAME":=` in the block
+- B  = max(L + 2, LR + 3), counted 1-based; the root line keeps at least one space before its `[`
+- this reproduces the original note to the column: the longest group name sits one space off its bar and the shorter root pads until its `.` lands on the bar
+
+[3]
+---
+LINE SHAPES
+--
+- root:      name, padding, `[.` with the `.` on B
+- parent:    name, padding, `| =>` with the `|` on B
+- member:    spaces, `| -> ` on B, value, modifiers, comma
+- end:       spaces, `|<- ` or `|<= ` on B, value, modifiers
+- break:     spaces, `| |` or `|+|` on B
+- close:     spaces, `]` at B - 1, under the `[`
+- constant:  name, padding, value starting on B
+
+[4]
+---
+COMMENTS
+--
+- trailing comments in a block share one column: two spaces past the widest commented line
+- W01 names the drift it found: bar or `.` column, comment column, comma, modifier order, or padding between tokens
+- whole-line comments keep their own indentation
+- width counts East Asian wide glyphs as two columns; names should stay ASCII so the left edge never drifts
+
+[5]
+---
+
+--
+-
+
+
+DIAGNOSTICS
+-----------
+
+[1]
+---
+ERRORS
+--
+- E01  group never ends
+- E02  member with no parent
+- E03  spine structure: unclosed, stray `]`, nested `[.`, declaration or header inside a spine, bar outside a spine
+- E04  undefined reference or missing label; the message suggests the closest declared name or label
+- E05  name or label declared twice
+- E06  root or parent without a name
+- E07  unreadable token or line, or a modifier where it is not allowed; the structure on that line still opens, so one typo reports once
+- E08  circular reference
+- E09  member after the group's end line
+- E10  member or declaration without a value, or with two
+- E11  animated reference where a static value is required
+- E12  view reaching into more than one spine
+
+[2]
+---
+WARNINGS
+--
+- W01  line off the alignment law (`rotor fmt` fixes it)
+- W02  tab character
+- W03  group unreachable behind an endless loop
+- W04  repeated consecutive frame
+- W05  blank line inside a spine
+- W06  unknown state
+
+[3]
+---
+
+--
+-
+
+
+IR
+--
+
+[1]
+---
+SHAPE
+--
+- `rotor compile` emits one JSON object: rotor, title, subtitle, default_hold_ms, rng, states, constants, spines, views
+- every member arrives fully resolved: spans of {text, state}, repeat, chance, hold_ms, label, op
+- groups carry passes (null = forever), loops and hold_ms (the hold of a pass in which chance skipped every member); spines carry loop and their tracks, in file order, which fixes each spine's stream seed
+- views carry parts: {text, state} for static pieces, {track, group, state} for live slots
+- a port (TS, Rust, Svelte) needs only the IR and the PLAYBACK section; it never re-parses ROTOR
+
+[2]
+---
+
+--
+-
+
+
+CLI
+---
+
+[1]
+---
+COMMANDS
+--
+- `rotor FILE`                     check, then play live in a terminal or trace when piped
+- `rotor fmt PATH...`              rewrite onto the law in place; folders are searched for *.rotor; `--dry` prints instead
+- `rotor check PATH...`            diagnostics with a per-file tally; exit 1 on any error
+- `rotor play FILE`                live preview of every spine; `--for SECONDS` stops early; the screen clips to the terminal height
+- `rotor trace FILE`               timeline table; rows with no visible change fold into the row above; `--all` keeps every event; `--ms`, `--rows`
+- `rotor compile FILE`             JSON IR to stdout, or `-o PATH`
+- `rotor spin FILE -- COMMAND`     runs COMMAND under the spinner and returns its exit code; on failure the last 20 lines of its output print under the settle line
+
+[2]
+---
+FLAGS
+--
+- `--spine NAME` narrows play, trace and spin to one spine
+- `--view NAME` picks what `spin` draws (default: the spine's first view, else its tracks side by side)
+- `--say TEXT` sets the spin message (default: the command line); `--show` prints the command's full output after it ends
+- `--seed N` fixes chance draws (default 0)
+- `--color 16m|256|none` sets color depth; detection reads COLORTERM, WT_SESSION and TERM_PROGRAM and falls back to the xterm-256 palette; `--no-color` or NO_COLOR drops color
+- install: `pip install -e .` from the repository root puts `rotor` on PATH; zero dependencies
+
+[3]
+---
+
+--
+-
+
+
+RUNTIME
+-------
+
+[1]
+---
+PLAYER
+--
+- `Player(doc_or_path, spine=None, view=None, seed=0)` is a pure frame source: no threads, no I/O, no clock of its own
+- `player.spans(t)` and `player.text(t)` give the picture at t milliseconds; asking for an earlier t replays from zero
+- `player.next_change` is the ms of the next frame change, or None once the spine has ended, so a caller sleeps exactly until the picture moves
+- given only a view, the player finds its spine; given only a spine, it draws the spine's first view, else its tracks side by side
+- a file with errors raises RotorError carrying the plain check report
+
+[2]
+---
+SPINNER
+--
+- `with Spinner(source, view=..., message=...) as sp:` animates one line on stderr while the block runs
+- `sp.say(text)` swaps the message mid-run; `sp.fail(note)` and `sp.done(note)` set the outcome and a note printed under the settle line
+- the line settles on the last picture recolored `!ok` with `done`, or `!hot` with `failed` when the block raised or `fail` was called; exceptions always propagate
+- off a terminal (piped, logged) it draws nothing until the end and then writes the settle line once, without escape codes
+- the cursor hides while it spins and returns on every exit path, ctrl-c included
+
+[3]
+---
+
+--
+-
+
+
+PORTS
+-----
+
+[1]
+---
+TYPESCRIPT
+--
+- ports/ts/rotor.ts reads the IR and exports `timeline`, `Player`, `renderView`, `toAnsi` and `toHtml`; zero dependencies, erasable-only syntax, so Node 22+ runs it without a build step
+- ports/ts/cli.ts dumps timelines as JSON for conformance, or with `--play` spins one line in a terminal
+- conformance: tests compile every example, run both players over seeds 0, 7 and 1234, and require identical events, spans and states
+
+[2]
+---
+RULES FOR A NEW PORT
+--
+- read the IR only; never parse `.rotor`
+- implement mulberry32, the stream seed, and the PLAYBACK section in that order, then pass the conformance dump against rotor.py before shipping
+
+[3]
+---
+
+--
+-
+
+
+EDITORS
+-------
+
+[1]
+---
+VS CODE
+--
+- editors/vscode is an extension folder: TextMate grammar, `//` comments, spaces-only and no ligatures for .rotor files so the bar column stays true
+- every construct gets its own scope: names, the walrus, `[.` and `]`, each arrow, both breaks, labels, references, states, holds, chances, repeats, glyph strings, escapes, headers and state colors
+- editors/vscode/test/tokenize.cjs runs the real VS Code tokenizer over the examples and checks twenty scopes; `npm i` in that folder enables it inside the Python suite
+
+[2]
+---
+
+--
+-
+
+
+CHANGES
+-------
+
+[1]
+---
+V0 TO V1
+--
+- `:` changed jobs: v0 had it as a positional key in a JSON list; v1 makes it the member label, which keeps the stage_01 keys and makes them addressable
+- the JSON braces from the original note are gone; a spine already orders its members, so the stage block became the CUBE_LIFE spine in examples/header.rotor
+- the alignment law was restated from the original note's columns, replacing v0's looser "walrus column + 2" wording
+- `<=`, `|+|`, `&`, `*N`, `?N%`, `!state`, `@hold`, labels, views and `]<=` are ROTOR inventions; the canon glyphs (`[.`, `|`, `]`, `=>`, `->`, `<-`, `| |`, `:=`) are the original note's
+
+[2]
+---
+V1 TO V1.1
+--
+- chance draws moved from Python's Mersenne Twister to mulberry32, so seeded timelines from v1.0 replay differently; the notation itself is unchanged and every v1.0 file still parses
+- stream seeds are now `seed + spine index in the file` everywhere; v1.0 trace seeded every spine with the bare seed while play offset by display order
+- strings gained `\"` and `\\` escapes
+- the IR gained `rng` and a group `hold_ms`, and dropped the prose `semantics` field in favour of this spec
+
+[3]
+---
+
+--
+-
